@@ -1,24 +1,33 @@
 
 # DaProdMail - Soluzione Email per Clienti con AI
 
-DaProdMail è un'applicazione web costruita con Next.js che ti permette di gestire i tuoi clienti, organizzarli in categorie e inviare email personalizzate, con l'aggiunta di funzionalità AI per migliorare i tuoi testi di marketing.
+DaProdMail è un'applicazione web costruita con Next.js che ti permette di gestire i tuoi clienti, organizzarli in categorie e inviare email personalizzate, con l'aggiunta di funzionalità AI per migliorare i tuoi testi di marketing, utilizzando le informazioni specifiche della tua azienda.
 
 ## Funzionalità Principali
 
 *   **Gestione Clienti:**
     *   Aggiungi, modifica ed elimina clienti.
-    *   Importa ed esporta la lista clienti tramite file `.txt` (formato: `Nome,email`).
-    *   Assegna clienti a una o più categorie.
+    *   Importa ed esporta la lista clienti tramite file `.txt` (formato: `Nome,email,idCategoria1;idCategoria2;...`).
+    *   Assegna clienti a una o più categorie, anche direttamente dalla lista clienti.
+    *   Crea categorie al volo durante l'aggiunta/modifica di un cliente.
+    *   Elimina tutti i clienti con conferma.
 *   **Gestione Categorie:**
     *   Crea, modifica ed elimina categorie per raggruppare i clienti.
 *   **Composizione Email Potenziata da AI:**
     *   Scrivi email e inviale a singoli clienti o a intere categorie.
+    *   Il corpo dell'email viene inviato come HTML, permettendo formattazione personalizzata.
     *   Utilizza l'intelligenza artificiale (tramite Genkit e Google AI) per:
-        *   **Migliorare il corpo dell'email:** Espandi poche parole chiave in un testo di marketing completo e coinvolgente.
+        *   **Migliorare il corpo dell'email:** Espandi poche parole chiave in un testo di marketing HTML completo, ben strutturato (con titoli e paragrafi), coinvolgente, con un tono formale ma amichevole e un uso limitato di emoji. L'AI non suggerirà immagini.
         *   **Migliorare l'oggetto dell'email:** Genera o raffina oggetti per massimizzare l'impatto e il tasso di apertura, basandosi sul corpo dell'email.
+    *   Ricerca clienti per nome/email e opzione "Seleziona Tutti/Deseleziona Tutti (Visibili)" quando si scelgono destinatari individuali.
+*   **Informazioni Azienda per AI:**
+    *   Pagina dedicata per inserire dettagli sulla tua azienda (nome, sito web, descrizione generale).
+    *   Queste informazioni vengono utilizzate dall'AI per generare testi più mirati e pertinenti.
+    *   Importa ed esporta queste informazioni tramite file `infoaiazienda.txt`.
 *   **Configurazione Semplice:**
     *   Imposta il tuo indirizzo Gmail e una "Password per app" per l'invio effettivo delle email.
     *   Configura la tua chiave API di Google AI per abilitare le funzionalità di miglioramento del testo.
+    *   Importa ed esporta le credenziali (email, password per app, chiave API) tramite file `credenzialidaprodmail.txt` (con avviso sulla sicurezza).
 *   **Interfaccia Utente Moderna:**
     *   Realizzata con ShadCN UI e Tailwind CSS per un'esperienza utente pulita e reattiva.
     *   Navigazione intuitiva con sidebar.
@@ -49,9 +58,11 @@ DaProdMail è un'applicazione web costruita con Next.js che ti permette di gesti
     ```
 3.  **Configura le impostazioni dell'applicazione:**
     *   Naviga alla pagina "Impostazioni" nell'applicazione.
-    *   Inserisci il tuo indirizzo **Email Google Mail** e la relativa **Password per App**. Puoi generare una Password per App [qui](https://myaccount.google.com/apppasswords).
-    *   Inserisci la tua **Chiave API Google AI**. Puoi ottenerla da [Google AI Studio](https://aistudio.google.com/app/apikey).
-    *   *Nota: Le funzionalità AI (miglioramento testo/oggetto) richiederanno una chiave API Google AI valida. L'invio email richiederà un indirizzo Gmail e una Password per App validi.*
+        *   Inserisci il tuo indirizzo **Email Google Mail** e la relativa **Password per App**. Puoi generare una Password per App [qui](https://myaccount.google.com/apppasswords).
+        *   Inserisci la tua **Chiave API Google AI**. Puoi ottenerla da [Google AI Studio](https://aistudio.google.com/app/apikey).
+        *   *Nota: Le funzionalità AI richiederanno una chiave API Google AI valida. L'invio email richiederà un indirizzo Gmail e una Password per App validi.*
+    *   Naviga alla pagina "Info AI Azienda".
+        *   Inserisci le informazioni sulla tua azienda (nome, sito web, dettagli) per personalizzare i testi generati dall'AI.
 4.  **Avvia l'applicazione in modalità sviluppo:**
     ```bash
     npm run dev
@@ -61,6 +72,7 @@ DaProdMail è un'applicazione web costruita con Next.js che ti permette di gesti
     ```bash
     npm run genkit:dev
     ```
+    *Assicurati di aver impostato la variabile d'ambiente `GOOGLE_API_KEY` se il tuo provider Google AI in Genkit la richiede a livello di ambiente, oppure assicurati che la chiave API inserita nelle impostazioni dell'app sia usata correttamente dai flussi Genkit.*
 
 ## Script Disponibili
 

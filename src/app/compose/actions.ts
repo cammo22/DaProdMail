@@ -4,10 +4,12 @@
 import { 
   improveEmailText as genAiImproveEmailText,
   improveEmailSubject as genAiImproveEmailSubject,
-  type ImproveEmailTextInput,
-  type ImproveEmailSubjectInput
+  type ImproveEmailTextInput as GenAiImproveEmailTextInput,
+  type ImproveEmailSubjectInput as GenAiImproveEmailSubjectInput
 } from '@/ai/flows/improve-email-text';
 import nodemailer from 'nodemailer';
+import type { CompanyInfo } from '@/types';
+
 
 export interface EmailRecipient {
   name: string;
@@ -16,10 +18,15 @@ export interface EmailRecipient {
 export interface SendEmailParams {
   recipients: EmailRecipient[];
   subject: string;
-  body: string;
+  body: string; // Sarà HTML
   senderEmail?: string; 
   appPassword?: string; 
 }
+
+// Rimuovere toneOfVoice da questi tipi se non più usato
+export interface ImproveEmailTextInput extends Omit<GenAiImproveEmailTextInput, 'toneOfVoice'>, Partial<Pick<CompanyInfo, 'companyName' | 'companyDetails' | 'website'>> {}
+export interface ImproveEmailSubjectInput extends Omit<GenAiImproveEmailSubjectInput, 'toneOfVoice'>, Partial<Pick<CompanyInfo, 'companyName' | 'website'>> {}
+
 
 export async function improveEmailTextAction(input: ImproveEmailTextInput): Promise<{ improvedText?: string; error?: string }> {
   try {
@@ -56,6 +63,9 @@ export async function sendEmailAction(params: SendEmailParams): Promise<{ succes
   if (params.recipients.length === 0) {
     return { success: false, message: "Invio Fallito: Nessun destinatario selezionato." };
   }
+   if (!params.body || params.body.trim() === "" || params.body.trim() === "<p><br></p>") {
+    return { success: false, message: "Invio Fallito: Il corpo dell'email non può essere vuoto." };
+  }
 
   const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -69,7 +79,7 @@ export async function sendEmailAction(params: SendEmailParams): Promise<{ succes
     from: params.senderEmail,
     to: params.recipients.map(r => r.email).join(','),
     subject: params.subject,
-    html: params.body, 
+    html: params.body, // Invia come HTML
   };
 
   try {

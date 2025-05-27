@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
-import Link from 'next/link'; // Added import
+import Link from 'next/link';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +18,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle, Edit3, Trash2, UploadCloud, Download, FolderKanban } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Edit3, Trash2, UploadCloud, Download, FolderKanban, AlertTriangle } from 'lucide-react';
 import { useAppState } from '@/contexts/AppStateContext';
 import { CustomerForm } from '@/components/customers/CustomerForm';
 import type { Customer, Category } from '@/types';
@@ -37,13 +37,15 @@ import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 
 export default function CustomersPage() {
-  const { customers, deleteCustomer, getCategoryById, importCustomers, categories, updateCustomer } = useAppState();
+  const { customers, deleteCustomer, deleteAllCustomers, getCategoryById, importCustomers, categories, updateCustomer } = useAppState();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+  const [isDeleteAllCustomersDialogOpen, setIsDeleteAllCustomersDialogOpen] = useState(false);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -70,13 +72,19 @@ export default function CustomersPage() {
     }
   };
 
+  const handleDeleteAllCustomersConfirm = () => {
+    deleteAllCustomers();
+    toast({ title: "Clienti Eliminati", description: "Tutti i clienti sono stati eliminati." });
+    setIsDeleteAllCustomersDialogOpen(false);
+  };
+
   const handleExportCustomers = () => {
     if (customers.length === 0) {
       toast({ title: "Nessun Cliente", description: "Non ci sono clienti da esportare.", variant: "destructive" });
       return;
     }
     const fileContent = customers
-      .map(customer => `${customer.name},${customer.email}`)
+      .map(customer => `${customer.name},${customer.email},${(customer.categoryIds || []).join(';')}`)
       .join('\n');
     
     const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
@@ -119,24 +127,35 @@ export default function CustomersPage() {
       }
       try {
         const lines = text.split('\n').filter(line => line.trim() !== '');
-        const newCustomers: Array<Omit<Customer, 'id' | 'categoryIds'>> = [];
+        const newCustomers: Array<Omit<Customer, 'id' | 'categoryIds'> & { categoryIds?: string[] }> = [];
         let importedCount = 0;
         let skippedCount = 0;
 
         lines.forEach((line, index) => {
           const parts = line.split(',');
-          if (parts.length >= 2) {
+          if (parts.length >= 2) { // Must have at least name and email
             const name = parts[0].trim();
             const email = parts[1].trim();
-            if (name && email) { // Basic validation
-              newCustomers.push({ name, email });
+            let categoryIds: string[] = [];
+
+            if (parts.length > 2 && parts[2].trim() !== '') {
+              const rawCategoryIds = parts[2].trim().split(';').map(id => id.trim()).filter(id => id !== '');
+              // Filter to keep only existing category IDs
+              categoryIds = rawCategoryIds.filter(id => getCategoryById(id));
+              if (rawCategoryIds.length !== categoryIds.length) {
+                console.warn(`Riga ${index + 1}: Alcuni ID categoria non validi sono stati ignorati per il cliente ${name}.`);
+              }
+            }
+            
+            if (name && email) { // Basic validation for name and email
+              newCustomers.push({ name, email, categoryIds });
               importedCount++;
             } else {
               console.warn(`Riga ${index + 1} ignorata: nome o email mancanti o non validi.`);
               skippedCount++;
             }
           } else {
-            console.warn(`Riga ${index + 1} ignorata: formato non corretto.`);
+            console.warn(`Riga ${index + 1} ignorata: formato non corretto (richiesti almeno nome,email).`);
             skippedCount++;
           }
         });
@@ -225,6 +244,18 @@ export default function CustomersPage() {
           </Dialog>
         </div>
       </div>
+      
+      {customers.length > 0 && (
+         <div className="mb-6">
+            <Separator />
+            <div className="flex justify-end pt-4">
+                <Button variant="destructive" onClick={() => setIsDeleteAllCustomersDialogOpen(true)}>
+                    <Trash2 className="mr-2 h-4 w-4" /> Elimina Tutti i Clienti
+                </Button>
+            </div>
+         </div>
+      )}
+
 
       <Card className="shadow-lg">
         <CardHeader>
@@ -251,11 +282,11 @@ export default function CustomersPage() {
                     <TableCell>{customer.email}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {customer.categoryIds.map(catId => {
+                        {(customer.categoryIds || []).map(catId => {
                           const category = getCategoryById(catId);
                           return category ? <Badge key={catId} variant="secondary">{category.name}</Badge> : null;
                         })}
-                        {customer.categoryIds.length === 0 && <span className="text-xs text-muted-foreground">N/D</span>}
+                        {(customer.categoryIds || []).length === 0 && <span className="text-xs text-muted-foreground">N/D</span>}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
@@ -345,7 +376,7 @@ export default function CustomersPage() {
                 Annulla
                 </Button>
             </DialogClose>
-            <Button type="button" onClick={handleSaveCategoryAssignment} disabled={categories.length === 0}>
+            <Button type="button" onClick={handleSaveCategoryAssignment} disabled={categories.length === 0 && tempSelectedCategoryIds.length === 0}>
               Salva Categorie
             </Button>
           </DialogFooter>
@@ -353,7 +384,7 @@ export default function CustomersPage() {
       </Dialog>
 
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Single Customer Confirmation Dialog */}
       <AlertDialog open={!!customerToDelete} onOpenChange={() => setCustomerToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -371,6 +402,28 @@ export default function CustomersPage() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Delete All Customers Confirmation Dialog */}
+      <AlertDialog open={isDeleteAllCustomersDialogOpen} onOpenChange={setIsDeleteAllCustomersDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-center text-destructive mb-2">
+                <AlertTriangle className="mr-2 h-6 w-6 " />
+                <AlertDialogTitle className="text-destructive">ATTENZIONE: Sei sicuro?</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription>
+             Stai per eliminare **tutti i clienti** dalla lista. Questa azione è irreversibile e non potrà essere annullata.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsDeleteAllCustomersDialogOpen(false)}>Annulla</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteAllCustomersConfirm} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+              Sì, Elimina Tutti
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </AppLayout>
   );
 }
+

@@ -3,7 +3,7 @@
 
 import type { ReactNode } from 'react';
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import type { AppState, AppStateContextType, Customer, Category, EmailSettings } from '@/types';
+import type { AppState, AppStateContextType, Customer, Category, EmailSettings, CompanyInfo } from '@/types';
 
 const AppStateContext = createContext<AppStateContextType | undefined>(undefined);
 
@@ -11,6 +11,7 @@ const initialAppState: AppState = {
   customers: [],
   categories: [],
   emailSettings: null,
+  companyInfo: { companyName: "", companyDetails: "", website: "" }, // toneOfVoice rimosso
 };
 
 const LOCAL_STORAGE_KEY = 'daProdMailAppState';
@@ -23,7 +24,17 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     try {
       const storedState = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (storedState) {
-        setAppState(JSON.parse(storedState));
+        const parsedState = JSON.parse(storedState);
+        if (!parsedState.companyInfo) {
+          parsedState.companyInfo = initialAppState.companyInfo;
+        } else {
+          // Assicurarsi che i campi companyInfo siano corretti
+          if (typeof parsedState.companyInfo.companyName !== 'string') parsedState.companyInfo.companyName = "";
+          if (typeof parsedState.companyInfo.companyDetails !== 'string') parsedState.companyInfo.companyDetails = "";
+          if (typeof parsedState.companyInfo.website !== 'string') parsedState.companyInfo.website = "";
+          delete parsedState.companyInfo.toneOfVoice; // Rimuove esplicitamente il vecchio campo
+        }
+        setAppState(prevState => ({ ...prevState, ...parsedState }));
       }
     } catch (error) {
       console.error("Failed to load state from localStorage:", error);
@@ -61,16 +72,25 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       customers: prevState.customers.filter(c => c.id !== customerId),
     }));
   }, []);
+
+  const deleteAllCustomers = useCallback(() => {
+    setAppState(prevState => ({
+      ...prevState,
+      customers: [],
+    }));
+  }, []);
   
   const getCustomerById = useCallback((customerId: string): Customer | undefined => {
     return appState.customers.find(c => c.id === customerId);
   }, [appState.customers]);
 
-  const addCategory = useCallback((categoryData: Omit<Category, 'id'>) => {
+  const addCategory = useCallback((categoryData: Omit<Category, 'id'>): Category => {
+    const newCategory = { ...categoryData, id: crypto.randomUUID() };
     setAppState(prevState => ({
       ...prevState,
-      categories: [...prevState.categories, { ...categoryData, id: crypto.randomUUID() }],
+      categories: [...prevState.categories, newCategory],
     }));
+    return newCategory;
   }, []);
 
   const updateCategory = useCallback((updatedCategory: Category) => {
@@ -107,14 +127,14 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
-  const importCustomers = useCallback((newCustomersData: Array<Omit<Customer, 'id' | 'categoryIds'>>) => {
+  const importCustomers = useCallback((newCustomersData: Array<Omit<Customer, 'id' | 'categoryIds'> & { categoryIds?: string[] }>) => {
     setAppState(prevState => {
       const customersToAdd = newCustomersData.map(custData => ({
-        ...custData,
+        name: custData.name,
+        email: custData.email,
         id: crypto.randomUUID(),
-        categoryIds: [], // Imported customers start with no categories
+        categoryIds: custData.categoryIds || [], 
       }));
-      // Simple addition, no advanced duplicate checking for now
       return {
         ...prevState,
         customers: [...prevState.customers, ...customersToAdd],
@@ -122,12 +142,24 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const saveCompanyInfo = useCallback((info: CompanyInfo) => {
+    setAppState(prevState => ({
+      ...prevState,
+      companyInfo: {
+        companyName: info.companyName || "",
+        companyDetails: info.companyDetails || "",
+        website: info.website || "",
+        // toneOfVoice rimosso
+      },
+    }));
+  }, []);
+
   const value = {
     ...appState,
     addCustomer,
     updateCustomer,
     deleteCustomer,
-    getCustomerById,
+    deleteAllCustomers,
     addCategory,
     updateCategory,
     deleteCategory,
@@ -135,10 +167,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     getCustomersByCategory,
     saveEmailSettings,
     importCustomers,
+    getCustomerById,
+    saveCompanyInfo,
   };
 
   if (!isInitialized) {
-    return null; // Or a loading spinner
+    return null; 
   }
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

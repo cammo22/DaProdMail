@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { ReactNode } from 'react';
@@ -16,7 +17,7 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Mail, Users, FolderKanban, Settings, LayoutDashboard, Send, LogOut } from 'lucide-react';
+import { Mail, Users, FolderKanban, Settings, LayoutDashboard, Send, LogOut, Building, Info } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -41,6 +42,7 @@ const navItems: NavItem[] = [
   { href: '/customers', label: 'Clienti', icon: Users, tooltip: 'Gestisci Clienti' },
   { href: '/categories', label: 'Categorie', icon: FolderKanban, tooltip: 'Gestisci Categorie' },
   { href: '/compose', label: 'Componi Email', icon: Send, tooltip: 'Componi e Invia Email' },
+  { href: '/info-ai-azienda', label: 'Info AI Azienda', icon: Building, tooltip: 'Info Azienda per AI' },
   { href: '/settings', label: 'Impostazioni', icon: Settings, tooltip: 'Impostazioni Applicazione' },
 ];
 
@@ -121,3 +123,5 @@ export function AppLayout({ children }: { children: ReactNode }) {
     </SidebarProvider>
   );
 }
+
+    
