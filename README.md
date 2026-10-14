@@ -1,6 +1,8 @@
 
 # DaProdMail - Soluzione Email per Clienti con AI
 
+[![Discord](https://img.shields.io/badge/Discord-DaProd-5865F2?logo=discord&logoColor=white)](https://discord.gg/Njs52aacwq)
+
 DaProdMail è un'applicazione web costruita con Next.js che ti permette di gestire i tuoi clienti, organizzarli in categorie e inviare email personalizzate, con l'aggiunta di funzionalità AI per migliorare i tuoi testi di marketing, utilizzando le informazioni specifiche della tua azienda.
 
 ## Funzionalità Principali
